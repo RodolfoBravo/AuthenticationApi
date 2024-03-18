@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using AuthenticationApi.Context;
 using AuthenticationApi.Models;
 using AuthenticationApi.Utils;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
 
 namespace AuthenticationApi.Controllers
 {
@@ -21,6 +25,7 @@ namespace AuthenticationApi.Controllers
         {
             _context = context;
         }
+
 
         // GET: api/Users
         [HttpGet]
@@ -93,12 +98,12 @@ namespace AuthenticationApi.Controllers
         [HttpPost("LoginUser")]
         public async Task<ActionResult> LoginUser(LoginUser loginModel)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.email == loginModel.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.email == loginModel.email);
             if (user == null)
             {
                 return BadRequest("Correo no registrado");
             }
-            if (user == null || !HashFunctions.VerifyPassword(loginModel.Password, user.password))
+            if (user == null || !HashFunctions.VerifyPassword(loginModel.password, user.password))
             {
                 BadRequest("Contraseña incorrectos");
             }
@@ -110,7 +115,30 @@ namespace AuthenticationApi.Controllers
             return Ok(new { user.id, Token = tokenString });
         }
 
+        [HttpGet("GetUser/{token}")]
+        public async Task<ActionResult<User>> GetUser(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest("Token no válido");
+            }
+            int userId;
+            Console.WriteLine("this is rodo");
+            var isValidToken = TokenFunctions.ValidateToken(token, out userId);
+            Console.WriteLine(""+userId+"", isValidToken);
+            if (isValidToken)
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound("Usuario no encontrado");
+                }
+                user.password = "";
+                return Ok(user);
+            }
 
+            return Unauthorized();
+        }
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
