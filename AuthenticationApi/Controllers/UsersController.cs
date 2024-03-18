@@ -8,8 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using AuthenticationApi.Context;
 using AuthenticationApi.Models;
 using AuthenticationApi.Utils;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 
@@ -32,20 +30,6 @@ namespace AuthenticationApi.Controllers
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             return await _context.Users.ToListAsync();
-        }
-
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return user;
         }
 
         // PUT: api/Users/5
@@ -91,7 +75,7 @@ namespace AuthenticationApi.Controllers
             var tokenString = TokenFunctions.GenerateToken(user.id);
 
             // Devolver token en la respuesta
-            return CreatedAtAction("GetUser", new { id = user.id }, new { user.id, Token = tokenString });
+            return Ok(new { Token = tokenString });
         }
 
         //POST Loggin user
@@ -105,14 +89,14 @@ namespace AuthenticationApi.Controllers
             }
             if (user == null || !HashFunctions.VerifyPassword(loginModel.password, user.password))
             {
-                BadRequest("Contraseña incorrectos");
+               return BadRequest("Contraseña incorrectos");
             }
 
             // Generar token con duración de una hora
             var tokenString = TokenFunctions.GenerateToken(user.id);
 
             // Devolver token y la información del usuario en la respuesta
-            return Ok(new { user.id, Token = tokenString });
+            return Ok(new { Token = tokenString });
         }
 
         [HttpGet("GetUser/{token}")]
@@ -123,9 +107,7 @@ namespace AuthenticationApi.Controllers
                 return BadRequest("Token no válido");
             }
             int userId;
-            Console.WriteLine("this is rodo");
             var isValidToken = TokenFunctions.ValidateToken(token, out userId);
-            Console.WriteLine(""+userId+"", isValidToken);
             if (isValidToken)
             {
                 var user = await _context.Users.FindAsync(userId);

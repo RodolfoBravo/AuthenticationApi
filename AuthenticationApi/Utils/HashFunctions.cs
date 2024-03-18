@@ -15,8 +15,7 @@ namespace AuthenticationApi.Utils
         public static bool VerifyPassword(string enteredPassword, string hashedPassword)
         {
             using var sha256 = SHA256.Create();
-            var enteredPasswordHash = BitConverter.ToString(sha256.ComputeHash(Encoding.UTF8.GetBytes(enteredPassword)))
-                .Replace("-", "").ToLower();
+            var enteredPasswordHash = HashPassword(enteredPassword);
 
             return enteredPasswordHash == hashedPassword;
         }
